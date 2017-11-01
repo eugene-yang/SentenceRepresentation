@@ -6,6 +6,7 @@ import theano
 import theano.tensor as tensor
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 import pickle as pkl
+from pathlib import Path
 import numpy
 import copy
 import os
@@ -79,7 +80,7 @@ def _mask(x, degree=0.1, use_preemb=False):
     rndidx = numpy.random.permutation(n_words)
     n_corr = numpy.round(numpy.float32(n_words) * degree)
 
-    corridx = rndidx[:n_corr]
+    corridx = rndidx[:int(n_corr)]
 
     x_noise = copy.copy(x)
     for ci in corridx:
@@ -95,7 +96,7 @@ def _shuffle(x, degree=0.1, use_preemb=False):
     rndidx = numpy.random.permutation(n_words-1)
     n_corr = numpy.round(numpy.float32(n_words) * degree)
 
-    corridx = rndidx[:n_corr]
+    corridx = rndidx[:int(n_corr)]
 
     x_noise = copy.copy(x)
     for ci in corridx:
@@ -110,7 +111,7 @@ def _remove(x, degree=0.1, use_preemb=False):
     rndidx = numpy.random.permutation(n_words-1)
     n_corr = numpy.round(numpy.float32(n_words) * degree)
 
-    corridx = set(rndidx[:n_corr])
+    corridx = set(rndidx[:int(n_corr)])
 
     x_noise = []
     for ii, xx in enumerate(x):
@@ -840,6 +841,9 @@ def train(dim_word=100, # word vector dimensionality
     if reload_ and os.path.exists(saveto):
         params = load_params(saveto, params)
 
+    # dump params for analysis
+    pkl.dump( params, ( Path(saveto).parent / "model_params.pickle").open("wb"))
+
     tparams = init_tparams(params)
     trng, use_noise, \
           x, x_mask, x_noise, xn_mask, \
@@ -962,7 +966,8 @@ def train(dim_word=100, # word vector dimensionality
                 shp = x_noise.shape
                 x_noise = wv_embs[x_noise.flatten()].reshape([shp[0], shp[1], wv_embs.shape[1]])
 
-            if x == None:
+            # if x == None:
+            if len(x) == 0:
                 print('Minibatch with zero sample under length ', maxlen)
                 continue
 
